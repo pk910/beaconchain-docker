@@ -1,0 +1,44 @@
+name: Build beaconchain docker image
+
+
+env:
+  DEFAULT_REPO: "gobitfly/eth2-beaconchain-explorer"
+  DEFAULT_BRANCH: "master"
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: The origin git repository
+        default: gobitfly/eth2-beaconchain-explorer
+        required: true
+      commitRef:
+        description: The branch, tag or commit hash to checkout
+        default: master
+        required: true
+
+jobs:
+  build-docker-container:
+    name: Build docker container image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the beaconchain repository
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ github.event.inputs.repository || env.DEFAULT_REPO }}
+          ref: ${{ github.event.inputs.commitRef || env.DEFAULT_BRANCH }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: pk910/beaconchain:${{ github.event.inputs.commitRef || env.DEFAULT_BRANCH }}
+          push: true
